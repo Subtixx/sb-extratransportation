@@ -1,0 +1,48 @@
+{
+  "objectName" : "hopper",
+  "rarity" : "Common",
+  "colonyTags" : ["wire"],  
+  "description" : "Hopper",
+  "shortdescription" : "Hopper",
+  "race" : "generic",
+  "objectType" : "container",
+  "price" : 500,
+  "printable" : false,
+
+  "inventoryIcon" : "hoppericon.png",
+  "orientations" : [
+    {
+      "image" : "hopper.png:default.right",
+
+      "spaceScan" : 0.1,
+      "anchors" : [ "background" ],
+      "direction" : "left",
+      "collision" : "platform"
+    },
+    {
+      "image" : "hopper.png:default.left",
+      
+      "spaceScan" : 0.1,
+      "anchors" : [ "background" ],
+      "direction" : "right",
+      "collision" : "platform"
+    }
+  ],
+  "scripts" : [ "hopper.lua" ],
+  "scriptDelta" : 60,
+
+  "animation" : "/objects/transport/hopper/hopper.animation",
+  "animationParts" : {
+    "switch" : "hopper.png"
+  },
+
+  "openSounds" : [ "/sfx/objects/mannequin_open.ogg" ],
+  "closeSounds" : [ "/sfx/objects/mannequin_close.ogg" ],
+  "slotCount" : 3,
+  "uiConfig" : "/interface/scripted/hopper/hoppergui.config",
+  "frameCooldown" : 5,
+  "autoCloseCooldown" : 3600,
+
+  "inputNodes" : [ [0, 0] ],
+  "outputNodes" : []
+}
