@@ -1,0 +1,10 @@
+{
+  "itemName" : "stackupgrade",
+  "price" : 600,
+  "rarity" : "Rare",
+  "category" : "craftingMaterial",
+  "inventoryIcon" : "stackupgrade.png",
+  "description" : "Basic stack upgrade",
+  "shortdescription" : "Stack upgrade",
+  "itemTags" : []
+}

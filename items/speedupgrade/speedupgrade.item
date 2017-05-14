@@ -1,0 +1,10 @@
+{
+  "itemName" : "speedupgrade",
+  "price" : 600,
+  "rarity" : "Rare",
+  "category" : "craftingMaterial",
+  "inventoryIcon" : "speedupgrade.png",
+  "description" : "Basic speed upgrade",
+  "shortdescription" : "Speed upgrade",
+  "itemTags" : []
+}
