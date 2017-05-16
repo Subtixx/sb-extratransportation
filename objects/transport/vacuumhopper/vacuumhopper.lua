@@ -1,33 +1,18 @@
 local debug = true
 
-local inputLocations = {
-	[1] = {-0.5, 0.5}, -- left
-	[2] = {2.5, 0.5},  -- right
-	[3] = {0.5, -0.5}, -- bottom
-	[4] = {0.5, 2.5} -- top
-}
-
-local outputLocations = {
-	[1] = {2.5, 0.5}, -- left
-	[2] = {-0.5, 0.5},  -- right
-	[3] = {0.5, 2.5}, -- bottom
-	[4] = {0.5, -0.5} -- top
-}
-
 --- Object init event.
 -- Gets executed when this object is placed.
 -- @param virtual if this is a virtual call?
 function init(virtual)
 	if virtual then return end
 
-	-- 1 left, 2 right, 3 bottom, 4 top
+	-- 0 left, 1 right, 2 top, 3 bottom
 	storage.settings = {}
 	if config.getParameter("facing") == nil then
-		storage.settings.direction = object.direction() == 1 and 2 or 1
+		storage.settings.direction = object.direction() == 1 and 1 or 0
 	else
 		storage.settings.direction = config.getParameter("facing")
 	end
-	object.setConfigParameter("facing", storage.settings.direction)
 
 	storage.accumulatedTimer = 0
 	storage.lastAction = 1
@@ -35,8 +20,6 @@ function init(virtual)
 	object.setInteractive(true)
 
 	message.setHandler("switchDirection", onDirectionSwitch)
-
-	TransportAPI.init(inputLocations, outputLocations)
 end
 
 function containerCallback()
@@ -79,15 +62,7 @@ end
 -- Gets executed when this object updates.
 -- @param dt delta time, time is specified in *.object as scriptDelta (60 = 1 second)
 function update(dt)
-	TransportAPI.update(dt)
-
-	local itm = world.containerItemAt(entity.id(), 0)
-	if itm ~= nil then
-		--TransportAPI.outputItem(itm)
-	end
-	TransportAPI.outputContent(0, 1)
-	TransportAPI.inputItem(0, 1)
-	--[[syncAnimation()
+	syncAnimation()
 
 	storage.accumulatedTimer = storage.accumulatedTimer + 1
 
@@ -98,31 +73,39 @@ function update(dt)
 	end
 
 	local pos = entity.position()
-	pos[1] = pos[1] + inputLocations[storage.settings.direction][1]
-	pos[2] = pos[2] + inputLocations[storage.settings.direction][2]
-	world.debugPoint(pos, "#FFFF00")
 
-	pos = entity.position()
-	pos[1] = pos[1] + outputLocations[storage.settings.direction][1]
-	pos[2] = pos[2] + outputLocations[storage.settings.direction][2]
-	world.debugPoint(pos, "#00FF00")
+	if storage.settings.direction == 0 then -- right
+		pos[1] = pos[1] - 2
+	elseif storage.settings.direction == 1 then -- left
+		pos[1] = pos[1] + 2
+	elseif storage.settings.direction == 2 then -- top
+		pos[2] = pos[2] - 2
+	elseif storage.settings.direction == 3 then -- bottom
+		pos[2] = pos[2] + 2
+	end
+
+	local itemsInArea = world.itemDropQuery(pos, 10)
+	--sb.logInfo("%s %s", sb.print(itemsInArea), sb.print())
+
+	if itemsInArea ~= nil then
+		local numItemsToPush = 1
+		local stackUpgradeItem = world.containerItemAt(entity.id(), 2)
+		if stackUpgradeItem ~= nil then
+			numItemsToPush = 125
+		end
+
+		local firstItem = getFirstItem(itemsInArea)
+		if firstItem ~= nil then
+			pushItemEntity(firstItem, entity.id(), numItemsToPush)
+		end
+	end
 
 	if storage.accumulatedTimer >= speed then -- Move 1 item each 3 seconds
 		if not object.getInputNodeLevel(0) then
 			if storage.lastAction == 1 then
-				local pos = entity.position()
-				if storage.settings.direction == 0 then -- right
-					pos[1] = pos[1] - 2
-				elseif storage.settings.direction == 1 then -- left
-					pos[1] = pos[1] + 2
-				elseif storage.settings.direction == 2 then -- top
-					pos[2] = pos[2] - 2
-				elseif storage.settings.direction == 3 then -- bottom
-					pos[2] = pos[2] + 2
-				end
-				world.debugPoint(pos, "#FF0000")
+				
 
-				tryTakingFirstItem(pos)
+				--tryTakingFirstItem(pos)
 
 				storage.lastAction = 0
 			else
@@ -136,16 +119,15 @@ function update(dt)
 				elseif storage.settings.direction == 3 then -- bottom
 					pos[2] = pos[2] - 2
 				end
-				world.debugPoint(pos, "#00FF00")
 
 				tryPushingBuffer(pos)
 
-				storage.lastAction = 1
+				storage.lastAction = 0
 			end
 		end
 
 		storage.accumulatedTimer = 0
-	end]]--
+	end
 end
 
 -- Custom functions here
@@ -158,10 +140,10 @@ end
 -- TODO: Maybe add a wrench item?
 function onDirectionSwitch(_, _)
 	-- 0 left, 1 right, 2 top, 3 bottom
-	if storage.settings.direction < 4 then
+	if storage.settings.direction < 3 then
 		storage.settings.direction = storage.settings.direction + 1
 	else
-		storage.settings.direction = 1
+		storage.settings.direction = 0
 	end
 	object.setConfigParameter("facing", storage.settings.direction)
 
@@ -169,9 +151,9 @@ function onDirectionSwitch(_, _)
 end
 
 function syncAnimation()
-	if storage.settings.direction == 1 then
+	if storage.settings.direction == 0 then
 		animator.setAnimationState("switchState", "right")
-	elseif storage.settings.direction == 0 then
+	elseif storage.settings.direction == 1 then
 		animator.setAnimationState("switchState", "left")
 	elseif storage.settings.direction == 2 then
 		animator.setAnimationState("switchState", "top")
@@ -180,7 +162,6 @@ function syncAnimation()
 	end
 end
 
---[[
 -- @return bool true if valid container, false otherwise
 function validateContainer(position)
 	if not world.tileIsOccupied(position, true) then return false end -- Has a tile at the position
@@ -193,6 +174,7 @@ function validateContainer(position)
 
 	return true
 end
+
 -- Weird hack for JSONArray. Dunno how else I'd get the length
 function getJSONLength(items)
 	local i = 0
@@ -266,7 +248,37 @@ function pushItem(itemToPush, fromEntityId, toEntityId, maxCount)
 	itemToPush["count"] = fitItem -- Only move how many are fitting in the inventory.
 
 	if world.containerConsume(fromEntityId, itemToPush) then
-		world.containerAddItems(toEntityId, itemToPush)
+		world.containerPutItemsAt(toEntityId, itemToPush, 0)
 	end
 end
-]]--
+
+function pushItemEntity(fromEntityId, toEntityId)
+	--sb.logInfo("Entity %s", world.entityName(fromEntityId))
+	--sb.logInfo("Container %s", world.containerItemAt(toEntityId, 0)["name"])
+
+	if world.containerItemAt(toEntityId, 0) ~= nil and world.entityName(fromEntityId) ~= world.containerItemAt(toEntityId, 0)["name"] then return false end
+
+	local itemToPush = world.takeItemDrop(fromEntityId, entity.id())
+
+	if itemToPush == nil or itemToPush["count"] == nil or itemToPush["count"] <= 0 then return end -- Don't push invalid items.
+
+	local fitItem = world.containerItemsCanFit(toEntityId, itemToPush)
+	if fitItem == nil or fitItem <= 0 then
+		local itemToSpawnPos = entity.position()
+		itemToSpawnPos[2] = itemToSpawnPos[2] + 2
+
+		world.spawnItem(itemToPush, itemToSpawnPos, itemToPush["count"])
+		return false
+	end -- Can the item fit in the container? (I dunno why it ever would be < 0 :D)
+
+	if fitItem ~= itemToPush["count"] then
+		--world.spawnItem(itemToPush, entity.position(), itemToPush["count"] - fitItem)
+	end
+
+	itemToPush["count"] = fitItem -- Only move how many are fitting in the inventory.
+
+	local leftOvers = world.containerPutItemsAt(toEntityId, itemToPush, 0)
+	if leftOvers ~= nil and leftOvers["count"] > 0 then
+		world.spawnItem(leftOvers, entity.position(), leftOvers["count"])
+	end
+end
